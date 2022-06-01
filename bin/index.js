@@ -44,9 +44,6 @@ function run(username, password, domain) {
     radiusHelper.send(packet, options, (err, response) => {
         if (err)
             throw (err);
-        console.log(response.code === radiusHelper.Codes.accessAccept);
-        console.log(response.attributes.Class);
-        console.log(response.attributes.Class === domain);
         if (response.code === radiusHelper.Codes.accessAccept && response.attributes.Class === domain) {
             console.log('Return password?');
         }
