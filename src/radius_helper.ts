@@ -3,7 +3,8 @@ import radius from 'radius';
 
 export enum Codes {
     accessRequest = 'Access-Request',
-    accessAccept = 'Access-Accept'
+    accessAccept = 'Access-Accept',
+    accessReject = 'Access-Reject'
 }
 
 export enum Attributes {
