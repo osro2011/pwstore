@@ -3,6 +3,8 @@
 import { Command } from "commander";
 import * as radiusHelper from "./radius_helper";
 import radius from "radius";
+import db, {Credentials} from './database';
+import { exit } from "process";
 
 const program = new Command();
 program
@@ -13,7 +15,7 @@ program
 
 program.parse();
 
-function run(username: string, password: string, domain: string): void {
+async function run(username: string, password: string, domain: string) {
     let packet: radiusHelper.Packet = new radiusHelper.Packet(radiusHelper.Codes.accessRequest, "secret");
     let options: radiusHelper.Options = new radiusHelper.Options;
     options.dictionaryPath = "/home/banan/Programmering/ts/pwstore/dictionary"
@@ -24,25 +26,34 @@ function run(username: string, password: string, domain: string): void {
     packet.attributes.push(un);
     packet.attributes.push(pw);
     
-    radiusHelper.send(packet, options, (err: unknown, response: radius.RadiusPacket) => {
+    radiusHelper.send(packet, options, async (err: unknown, response: radius.RadiusPacket) => {
         if (err) {
             console.log("ERROR: " + err);
+            return;
         }
         if (response.code === radiusHelper.Codes.accessReject) {
             console.log('Invalid User');
             return;
         }
-        /*
-        tbl.pw
-        DOMAIN | REQ_PERMS | PW
-        secore.enable.telianet | secore_RW | pass
-
-        select * from tbl.pw where domain=in_domain
-        return row?
-        if Attr.Class === REQ_PERMS: 
-            return pass;
-        else:
-            log deny
-        */
+        const perms = await getReqPerms(domain);
+        // Vad händer om det finns flera klassattribut?
+        if (response.attributes.Class === perms) {
+            console.log(await getPassword(domain));
+            return;
+        } else {
+            console.log("User lacks permissions")
+            return;
+        }
     });
+    return;
+}
+
+async function getReqPerms (domain: string) {
+    const creds = await Credentials(db).findOne({Domain: domain});
+    return creds?.Req_Perms;
+}
+
+async function getPassword (domain: string) {
+    const creds = await Credentials(db).findOne({Domain: domain});
+    return creds?.Password;
 }
